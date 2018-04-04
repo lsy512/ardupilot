@@ -849,8 +849,25 @@ void GCS_MAVLINK::packetReceived(const mavlink_status_t &status,
     }
 }
 
-void
-GCS_MAVLINK::update(run_cli_fn run_cli, uint32_t max_time_us)
+/*
+ encrypt a buffer thaat  send out to MAVLink channel
+ */
+unsigned char comm_receive_decrypt(uint8_t buffer)
+{
+#define passwd_num	5
+    uint8_t passwd[passwd_num] =
+    { 1, 2, 3, 4, 5 };
+    uint8_t i;
+    uint8_t decrypt_buf;
+    decrypt_buf = buffer;
+    for (i = 0; i < passwd_num; i++)
+    {
+        decrypt_buf = decrypt_buf ^ passwd[i];
+    }
+    return decrypt_buf;
+}
+
+void GCS_MAVLINK::update(run_cli_fn run_cli, uint32_t max_time_us)
 {
     // receive new packets
     mavlink_message_t msg;
@@ -884,7 +901,8 @@ GCS_MAVLINK::update(run_cli_fn run_cli, uint32_t max_time_us)
         }
 
         bool parsed_packet = false;
-        
+
+        c = comm_receive_decrypt(c);
         // Try to get a new message
         if (mavlink_parse_char(chan, c, &msg, &status)) {
             hal.util->perf_begin(_perf_packet);

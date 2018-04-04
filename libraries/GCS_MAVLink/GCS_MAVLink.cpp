@@ -138,14 +138,41 @@ uint16_t comm_get_available(mavlink_channel_t chan)
 }
 
 /*
+  encrypt a buffer thaat  send out to MAVLink channel
+ */
+void comm_send_buffer_encrypt( uint8_t *buffer, size_t size)
+{
+#define passwd_num	5
+	uint8_t passwd[passwd_num]={1,2,3,4,5};
+	uint8_t i,j;
+	uint8_t encrypt_buf,*p;
+	p=buffer;
+
+	for(j=0;j<size;j++)
+	{
+		encrypt_buf=*p;
+		for(i=0;i<passwd_num;i++)
+		{
+			encrypt_buf=encrypt_buf^passwd[i];
+		}
+		*p=encrypt_buf;
+		p++;
+	}
+}
+
+/*
   send a buffer out a MAVLink channel
  */
 void comm_send_buffer(mavlink_channel_t chan, const uint8_t *buf, uint8_t len)
 {
+	uint8_t buffer_encrypt[len];
     if (!valid_channel(chan)) {
         return;
     }
-    mavlink_comm_port[chan]->write(buf, len);
+    memcpy(buffer_encrypt, buf, len);
+    comm_send_buffer_encrypt(buffer_encrypt,len);
+
+    mavlink_comm_port[chan]->write(buffer_encrypt, len);
 }
 
 extern const AP_HAL::HAL& hal;
